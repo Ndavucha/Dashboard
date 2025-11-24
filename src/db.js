@@ -12,6 +12,10 @@ if (process.env.DATABASE_URL) {
   console.log('🔗 Using DATABASE_URL connection');
   poolConfig = {
     connectionString: process.env.DATABASE_URL,
+    // ✅ CRITICAL: Add SSL for production
+    ssl: process.env.NODE_ENV === 'production' ? { 
+      rejectUnauthorized: false 
+    } : false
   };
 } else {
   console.log('🔗 Using individual DB variables');
@@ -19,8 +23,10 @@ if (process.env.DATABASE_URL) {
     user: process.env.DB_USER || 'farmuser',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'farmmall_appDB',
-    password: process.env.DB_PASSWORD || 'farm123', // Ensure this is a string
+    password: process.env.DB_PASSWORD || 'farm123',
     port: process.env.DB_PORT || 5432,
+    // ✅ SSL for local development if needed
+    ssl: false
   };
 }
 
@@ -30,7 +36,8 @@ console.log('📊 Database config:', {
   host: poolConfig.host || 'from DATABASE_URL', 
   database: poolConfig.database || 'from DATABASE_URL',
   port: poolConfig.port || 'from DATABASE_URL',
-  hasPassword: !!poolConfig.password
+  hasPassword: !!poolConfig.password,
+  ssl: poolConfig.ssl ? 'enabled' : 'disabled'
 });
 
 const pool = new Pool(poolConfig);
@@ -44,4 +51,20 @@ pool.on('error', (err) => {
   console.error('❌ Database connection error:', err);
 });
 
+// Test the connection on startup
+const testConnection = async () => {
+  try {
+    const client = await pool.connect();
+    console.log('🎯 Database connection test: SUCCESS');
+    client.release();
+  } catch (error) {
+    console.error('💥 Database connection test: FAILED', error.message);
+  }
+};
+
+testConnection();
+
 export default pool;
+
+
+ 
