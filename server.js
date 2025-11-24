@@ -11,6 +11,77 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Database auto-initialization function
+async function initializeDatabase() {
+  try {
+    console.log('🔄 Checking database tables...');
+    
+    // Check if users table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users'
+      );
+    `);
+    
+    const usersTableExists = tableCheck.rows[0].exists;
+    
+    if (!usersTableExists) {
+      console.log('📦 Creating database tables...');
+      
+      // Create users table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(50) UNIQUE NOT NULL,
+          email VARCHAR(100) UNIQUE NOT NULL,
+          password_hash VARCHAR(255) NOT NULL,
+          role VARCHAR(20) NOT NULL CHECK (role IN ('farmer', 'agronomist', 'procurement', 'admin')),
+          first_name VARCHAR(50),
+          last_name VARCHAR(50),
+          phone VARCHAR(20),
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      console.log('✅ Users table created!');
+
+      // Create farmers table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS farmers (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          location VARCHAR(100),
+          land_size DECIMAL(10,2),
+          crop_type VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      console.log('✅ Farmers table created!');
+      
+      // Create default admin user
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.default.hash('admin123', 10);
+      
+      await pool.query(
+        `INSERT INTO users (username, email, password_hash, role, first_name, last_name) 
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        ['admin', 'admin@agrimanage.com', hashedPassword, 'admin', 'System', 'Admin']
+      );
+      
+      console.log('👤 Default admin user created (username: admin, password: admin123)');
+    } else {
+      console.log('✅ Database tables already exist');
+    }
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error.message);
+  }
+}
+
 // health
 app.get('/health', async (req, res) => {
   try {
@@ -44,4 +115,8 @@ app.get('/agronomy/assigned', requireAuth, requireRole('agronomist'), async (req
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, ()=> console.log(`Server listening on ${PORT}`));
+
+// Initialize database then start server
+initializeDatabase().then(() => {
+  app.listen(PORT, () => console.log(`🚀 Server listening on ${PORT}`));
+});
