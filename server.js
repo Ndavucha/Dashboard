@@ -63,19 +63,41 @@ async function initializeDatabase() {
 
       console.log('✅ Farmers table created!');
       
-      // Create default admin user
+      // Create all demo users
       const bcrypt = await import('bcrypt');
-      const hashedPassword = await bcrypt.default.hash('admin123', 10);
       
-      await pool.query(
-        `INSERT INTO users (username, email, password_hash, role, first_name, last_name) 
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        ['admin', 'admin@agrimanage.com', hashedPassword, 'admin', 'System', 'Admin']
-      );
+      const demoUsers = [
+        // admin user
+        ['admin', 'admin@agrimanage.com', 'admin123', 'admin', 'System', 'Admin'],
+        // procurement user
+        ['procurement', 'procurement@agrimanage.com', 'proc123', 'procurement', 'Procurement', 'Officer'],
+        // agronomist user
+        ['agronomist', 'agronomist@agrimanage.com', 'agro123', 'agronomist', 'Farm', 'Agronomist'],
+        // farmer user
+        ['farmer', 'farmer@agrimanage.com', 'farmer123', 'farmer', 'Demo', 'Farmer']
+      ];
       
-      console.log('👤 Default admin user created (username: admin, password: admin123)');
+      for (const user of demoUsers) {
+        const [username, email, password, role, firstName, lastName] = user;
+        const hashedPassword = await bcrypt.default.hash(password, 10);
+        
+        await pool.query(
+          `INSERT INTO users (username, email, password_hash, role, first_name, last_name) 
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [username, email, hashedPassword, role, firstName, lastName]
+        );
+        
+        console.log(`👤 Created ${role} user: ${username} / ${password}`);
+      }
+      
+      console.log('✅ All demo users created!');
+      
     } else {
       console.log('✅ Database tables already exist');
+      
+      // Check if we need to add missing demo users
+      const userCount = await pool.query('SELECT COUNT(*) FROM users');
+      console.log(`📊 Current users in database: ${userCount.rows[0].count}`);
     }
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
