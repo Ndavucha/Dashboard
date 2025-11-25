@@ -57,17 +57,35 @@ async function initializeDatabase() {
     const userCount = await pool.query('SELECT COUNT(*) FROM users');
     console.log(`📊 Current users in database: ${userCount.rows[0].count}`);
 
-    // Insert a default admin user if no users exist
+    // Insert all demo users if no users exist
     if (parseInt(userCount.rows[0].count) === 0) {
       const bcrypt = await import('bcrypt');
-      const hashedPassword = await bcrypt.default.hash('admin123', 10);
       
-      await pool.query(
-        `INSERT INTO users (username, email, password_hash, role, first_name, last_name) 
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        ['admin', 'admin@agrimanage.com', hashedPassword, 'admin', 'System', 'Admin']
-      );
-      console.log('👤 Default admin user created (username: admin, password: admin123)');
+      const demoUsers = [
+        // admin user
+        ['admin', 'admin@agrimanage.com', 'admin123', 'admin', 'System', 'Admin'],
+        // procurement user
+        ['procurement', 'procurement@agrimanage.com', 'proc123', 'procurement', 'Procurement', 'Officer'],
+        // agronomist user
+        ['agronomist', 'agronomist@agrimanage.com', 'agro123', 'agronomist', 'Farm', 'Agronomist'],
+        // farmer user
+        ['farmer', 'farmer@agrimanage.com', 'farmer123', 'farmer', 'Demo', 'Farmer']
+      ];
+      
+      for (const user of demoUsers) {
+        const [username, email, password, role, firstName, lastName] = user;
+        const hashedPassword = await bcrypt.default.hash(password, 10);
+        
+        await pool.query(
+          `INSERT INTO users (username, email, password_hash, role, first_name, last_name) 
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [username, email, hashedPassword, role, firstName, lastName]
+        );
+        
+        console.log(`👤 Created ${role} user: ${username} / ${password}`);
+      }
+      
+      console.log('✅ All demo users created!');
     }
 
   } catch (error) {
