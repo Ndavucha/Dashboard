@@ -104,6 +104,74 @@ async function initializeDatabase() {
   }
 }
 
+// Debug route to check all users
+app.get('/debug-users', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, username, role, email, is_active FROM users ORDER BY id');
+    res.json({ 
+      totalUsers: result.rows.length,
+      users: result.rows 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Temporary route to fix missing users
+app.post('/fix-users', async (req, res) => {
+  try {
+    const bcrypt = await import('bcrypt');
+    
+    const demoUsers = [
+      ['admin', 'admin@agrimanage.com', 'admin123', 'admin', 'System', 'Admin'],
+      ['procurement', 'procurement@agrimanage.com', 'proc123', 'procurement', 'Procurement', 'Officer'],
+      ['agronomist', 'agronomist@agrimanage.com', 'agro123', 'agronomist', 'Farm', 'Agronomist'],
+      ['farmer', 'farmer@agrimanage.com', 'farmer123', 'farmer', 'Demo', 'Farmer']
+    ];
+    
+    let created = 0;
+    let skipped = 0;
+    
+    for (const user of demoUsers) {
+      const [username, email, password, role, firstName, lastName] = user;
+      
+      // Check if user exists
+      const exists = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+      
+      if (exists.rows.length === 0) {
+        const hashedPassword = await bcrypt.default.hash(password, 10);
+        
+        await pool.query(
+          `INSERT INTO users (username, email, password_hash, role, first_name, last_name, is_active) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [username, email, hashedPassword, role, firstName, lastName, true]
+        );
+        
+        console.log(`👤 Created ${role} user: ${username}`);
+        created++;
+      } else {
+        console.log(`⏭️ User already exists: ${username}`);
+        skipped++;
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Created ${created} missing users, skipped ${skipped} existing users`,
+      users: demoUsers.map(u => ({ username: u[0], role: u[3], password: u[2] }))
+    });
+    
+  } catch (error) {
+    console.error('Error fixing users:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Test route to verify auth routes are working
+app.get('/test-auth', (req, res) => {
+  res.json({ message: 'Auth routes are working' });
+});
+
 // health
 app.get('/health', async (req, res) => {
   try {
