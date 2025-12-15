@@ -1,4 +1,4 @@
-// server.js
+// server.js - Updated farmer dashboard endpoint
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// health
+// Health endpoint
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -21,7 +21,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// auth
+// Auth routes
 app.use('/auth', authRoutes);
 
 // ========== DASHBOARD API ENDPOINTS ==========
@@ -87,7 +87,6 @@ app.get('/api/dashboard/agronomist', requireAuth, requireRole('agronomist'), asy
     const userId = req.user.userId;
     
     // Get assigned farmers for this agronomist
-    // First, let's check if you have an agronomist_zones or agronomists table
     const assignedFarmersResult = await pool.query(`
       SELECT f.*, u.username, u.first_name, u.last_name, u.phone
       FROM farmers f
@@ -108,7 +107,6 @@ app.get('/api/dashboard/agronomist', requireAuth, requireRole('agronomist'), asy
         LIMIT 5
       `, [userId]);
     } catch (e) {
-      // Table might not exist yet
       farmVisitsResult = { rows: [] };
     }
     
@@ -149,46 +147,35 @@ app.get('/api/dashboard/agronomist', requireAuth, requireRole('agronomist'), asy
   }
 });
 
-// 3. Farmer Dashboard Data
-// 3. Farmer Dashboard Data
+// 3. Farmer Dashboard Data - COMPLETE UPDATED VERSION
 app.get('/api/dashboard/farmer', requireAuth, requireRole('farmer'), async (req, res) => {
   try {
     const userId = req.user.userId;
-    
-    console.log('Fetching farmer data for user ID:', userId);
+    console.log('Fetching farmer dashboard data for user ID:', userId);
     
     // Get user details
-    const userResult = await pool.query(`
-      SELECT * FROM users WHERE id = $1
-    `, [userId]);
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
     
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
     
     const user = userResult.rows[0];
-    console.log('Found user:', user.email, 'role:', user.role);
     
-    // Try to find a farmer by email (since farmers table has email)
+    // Get farmer data
     let farmResult;
     if (user.email) {
-      farmResult = await pool.query(`
-        SELECT * FROM farmers WHERE email = $1
-      `, [user.email]);
+      farmResult = await pool.query('SELECT * FROM farmers WHERE email = $1', [user.email]);
     }
     
-    // If no farmer found by email, get the first farmer as fallback
+    // Fallback to first farmer if not found
     if (!farmResult || farmResult.rows.length === 0) {
-      console.log('No farmer found by email, fetching first farmer');
-      farmResult = await pool.query(`
-        SELECT * FROM farmers LIMIT 1
-      `);
+      farmResult = await pool.query('SELECT * FROM farmers LIMIT 1');
     }
     
-    // If still no farmer found, create a mock farmer
+    // Create mock farmer if none exists
     let farmData;
     if (farmResult.rows.length === 0) {
-      console.log('No farmers in database, creating mock data');
       farmData = {
         id: 1,
         first_name: user.first_name || 'Demo',
@@ -205,9 +192,7 @@ app.get('/api/dashboard/farmer', requireAuth, requireRole('farmer'), async (req,
       farmData = farmResult.rows[0];
     }
     
-    console.log('Using farmer:', farmData.id, farmData.first_name, farmData.last_name);
-    
-    // Get advisories for this farmer
+    // Get advisories
     let advisoriesResult;
     try {
       advisoriesResult = await pool.query(`
@@ -217,48 +202,15 @@ app.get('/api/dashboard/farmer', requireAuth, requireRole('farmer'), async (req,
         LIMIT 10
       `, [farmData.id]);
     } catch (e) {
-      console.log('Advisories table error or empty:', e.message);
       advisoriesResult = { rows: [] };
     }
     
-    console.log('Found advisories:', advisoriesResult.rows.length);
-    
-    // Get farmer tasks for this farmer
-    let tasksResult;
-    try {
-      tasksResult = await pool.query(`
-        SELECT * FROM farmer_tasks 
-        WHERE farmer_id = $1 
-        ORDER BY due_date ASC
-      `, [farmData.id]);
-    } catch (e) {
-      console.log('Farmer tasks table error or empty:', e.message);
-      tasksResult = { rows: [] };
-    }
-    
-    console.log('Found tasks:', tasksResult.rows.length);
-    
-    // Get field data if available
-    let fieldsResult;
-    try {
-      fieldsResult = await pool.query(`
-        SELECT * FROM fields 
-        WHERE farmer_id = $1 
-        LIMIT 1
-      `, [farmData.id]);
-    } catch (e) {
-      console.log('Fields table error or empty:', e.message);
-      fieldsResult = { rows: [] };
-    }
-    
-    // Calculate progress based on planting and harvest dates
-    let progress = 85; // default
-    
+    // Calculate progress
+    let progress = 85;
     if (farmData.planting_date && farmData.harvest_date) {
       const plantingDate = new Date(farmData.planting_date);
       const harvestDate = new Date(farmData.harvest_date);
       const today = new Date();
-      
       const totalDays = (harvestDate - plantingDate) / (1000 * 60 * 60 * 24);
       const daysPassed = (today - plantingDate) / (1000 * 60 * 60 * 24);
       
@@ -267,28 +219,106 @@ app.get('/api/dashboard/farmer', requireAuth, requireRole('farmer'), async (req,
       }
     }
     
-    // Prepare farm data
-    let farmDataResponse = {
-      plotSize: farmData.plot_size || '18 ha',
-      plantingDate: farmData.planting_date ? new Date(farmData.planting_date).toISOString().split('T')[0] : '2024-08-15',
-      expectedHarvest: farmData.harvest_date ? new Date(farmData.harvest_date).toISOString().split('T')[0] : '2024-12-28',
-      variety: farmData.crop_variety || 'Shangi',
-      progress: progress
+    // Prepare farmMetrics data according to PDF structure
+    const farmMetrics = {
+      farmers: {
+        perVariety: {
+          market: 150,
+          challenger: 85
+        },
+        perLocation: {
+          jan: 45,
+          feb: 52,
+          march: 58
+        }
+      },
+      acreage: {
+        perVariety: {
+          market: 1200,
+          challenger: 850
+        },
+        perLocationPerformance: {
+          market: 92,
+          challenger: 88
+        }
+      },
+      supply: {
+        readiness: progress, // Use actual progress
+        supplyDemandMatching: {
+          contracts: 24,
+          value: 185000,
+          forecasts: ['Q1: +15%', 'Q2: +8%'],
+          qualityReports: ['Report 1', 'Report 2'],
+          supplierRanking: ['Supplier A: 95%', 'Supplier B: 88%']
+        }
+      },
+      financial: {
+        projectedExpenses: 45000,
+        contractValue: 185000,
+        marketPrices: {
+          shangi: 120,
+          challenger: 110
+        },
+        paymentStatus: {
+          paid: 125000,
+          pending: 60000
+        }
+      },
+      sourcingLog: [
+        { 
+          date: '2024-12-15', 
+          name: 'John Doe', 
+          variety: 'Shangi', 
+          quantityDelivered: 500, 
+          qtyAccepted: 490, 
+          qtyRejected: 10, 
+          reason: 'Quality Issues', 
+          price: 120, 
+          source: 'Contracted', 
+          score: 95 
+        },
+        { 
+          date: '2024-12-10', 
+          name: 'Jane Smith', 
+          variety: 'Challenger', 
+          quantityDelivered: 300, 
+          qtyAccepted: 295, 
+          qtyRejected: 5, 
+          reason: 'Size Specification', 
+          price: 110, 
+          source: 'Farmers Market', 
+          score: 92 
+        }
+      ],
+      contracts: [
+        { 
+          farmer: 'John Doe', 
+          fulfilled: true, 
+          qtyFulfilled: 490, 
+          paymentStatus: 'Paid' 
+        },
+        { 
+          farmer: 'Jane Smith', 
+          fulfilled: false, 
+          qtyFulfilled: 0, 
+          paymentStatus: 'Pending' 
+        }
+      ],
+      supplyPlans: [
+        { 
+          farmer: 'John Doe', 
+          readiness: 'High', 
+          week: 'Week 1' 
+        },
+        { 
+          farmer: 'Jane Smith', 
+          readiness: 'Medium', 
+          week: 'Week 2' 
+        }
+      ]
     };
     
-    // If field data exists, use it
-    if (fieldsResult.rows.length > 0) {
-      const field = fieldsResult.rows[0];
-      farmDataResponse = {
-        plotSize: `${field.size || farmData.plot_size || 18} ha`,
-        plantingDate: field.planting_date ? new Date(field.planting_date).toISOString().split('T')[0] : farmDataResponse.plantingDate,
-        expectedHarvest: field.expected_harvest_date ? new Date(field.expected_harvest_date).toISOString().split('T')[0] : farmDataResponse.expectedHarvest,
-        variety: field.crop_variety || farmDataResponse.variety,
-        progress: field.progress || farmDataResponse.progress
-      };
-    }
-    
-    // Prepare advisories response
+    // Prepare advisories
     let advisoriesResponse = advisoriesResult.rows;
     if (advisoriesResponse.length === 0) {
       advisoriesResponse = [
@@ -307,27 +337,16 @@ app.get('/api/dashboard/farmer', requireAuth, requireRole('farmer'), async (req,
       ];
     }
     
-    // Prepare tasks response
-    let tasksResponse = tasksResult.rows;
-    if (tasksResponse.length === 0) {
-      tasksResponse = [
-        { 
-          id: 1,
-          title: 'Apply Fertilizer', 
-          description: 'Apply NPK fertilizer to maize field',
-          due_date: '2024-12-20',
-          status: 'pending'
-        },
-        { 
-          id: 2,
-          title: 'Pest Inspection', 
-          description: 'Check for pests in potato section',
-          due_date: '2024-12-22',
-          status: 'pending'
-        }
-      ];
-    }
+    // Prepare farm data
+    const farmDataResponse = {
+      plotSize: farmData.plot_size || '18 ha',
+      plantingDate: farmData.planting_date ? new Date(farmData.planting_date).toISOString().split('T')[0] : '2024-08-15',
+      expectedHarvest: farmData.harvest_date ? new Date(farmData.harvest_date).toISOString().split('T')[0] : '2024-12-28',
+      variety: farmData.crop_variety || 'Shangi',
+      progress: progress
+    };
     
+    // Final response
     const responseData = {
       farmer: {
         id: farmData.id,
@@ -345,52 +364,39 @@ app.get('/api/dashboard/farmer', requireAuth, requireRole('farmer'), async (req,
         message: adv.message || adv.description,
         date: adv.date || (adv.created_at ? new Date(adv.created_at).toISOString().split('T')[0] : '2024-12-20')
       })),
-      tasks: tasksResponse.map(task => ({
-        id: task.id,
-        title: task.title || task.task_description,
-        description: task.description || task.task_description,
-        dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '2024-12-20',
-        status: task.status || 'pending'
-      })),
       farmData: farmDataResponse,
+      farmMetrics: farmMetrics, // This is the new structure
       weatherAlerts: [
         { type: 'rain', message: 'Heavy rain expected tomorrow', priority: 'high' },
         { type: 'temperature', message: 'Temperature dropping to 15°C at night', priority: 'medium' }
       ]
     };
     
-    console.log('Sending farmer dashboard data successfully');
+    console.log('Successfully fetched farmer dashboard data');
     res.json(responseData);
     
   } catch (error) {
-    console.error('Farmer dashboard error details:', error);
+    console.error('Farmer dashboard error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch farmer data',
-      details: error.message,
-      suggestion: 'Check if farmers table exists and has data'
+      details: error.message
     });
   }
 });
-// ========== EXISTING ENDPOINTS (KEEP THESE) ==========
 
-// protected example: admin-only
+// Existing endpoints (keep these)
 app.get('/admin/summary', requireAuth, requireRole('admin'), async (req, res) => {
-  // return aggregated numbers for admin
   const { rows } = await pool.query('SELECT COUNT(*) AS farmers FROM farmers');
   res.json({ summary: rows[0] });
 });
 
-// procurement-route example (procurement or admin)
 app.get('/procurement/reconciliation', requireAuth, requireRole(['procurement','admin']), async (req, res) => {
-  // placeholder logic - you can update this to use the new endpoint
   res.json({ msg: 'Use /api/dashboard/procurement for full dashboard data' });
 });
 
-// agronomist example
 app.get('/agronomy/assigned', requireAuth, requireRole('agronomist'), async (req, res) => {
-  // fetch assigned farmers for this agronomist - placeholder
   res.json({ msg: 'Use /api/dashboard/agronomist for full dashboard data' });
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, ()=> console.log(`Server listening on ${PORT}`));
+app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
