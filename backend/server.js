@@ -1,7 +1,3 @@
-cd /workspaces/Dashboard/backend
-
-# Create minimal working backend
-cat > server.js << 'EOF'
 import express from 'express';
 import cors from 'cors';
 
@@ -61,3 +57,4 @@ npm install
 
 # Test locally
 npm start
+
