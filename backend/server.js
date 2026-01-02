@@ -27,10 +27,12 @@ app.use(cors({
   credentials: true
 }));
 
+app.use(express.json());  // Make sure to parse JSON bodies
+
 // ====================== EMPTY DATABASE ======================
 // Clients will add their own data
 const database = {
-  aggregators:[],
+  aggregators: [],  // Aggregators array exists but is empty
   farmers: [],
   crops: [],
   orders: [],
@@ -97,6 +99,194 @@ app.get('/api/analytics/risk-alerts', (req, res) => {
 
 // ====================== DATA MANAGEMENT ENDPOINTS ======================
 
+// ====================== AGGREGATORS API ======================
+
+// GET all aggregators
+app.get('/api/aggregators', (req, res) => {
+  res.json({
+    success: true,
+    data: database.aggregators,
+    count: database.aggregators.length
+  });
+});
+
+// GET single aggregator
+app.get('/api/aggregators/:id', (req, res) => {
+  const aggregator = database.aggregators.find(a => a.id === parseInt(req.params.id));
+  
+  if (!aggregator) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Aggregator not found' 
+    });
+  }
+  
+  res.json({ 
+    success: true, 
+    data: aggregator
+  });
+});
+
+// POST create aggregator
+app.post('/api/aggregators', (req, res) => {
+  try {
+    const { 
+      name, 
+      county, 
+      type, 
+      historical_volume, 
+      reliability_score, 
+      average_quality,
+      contact_person,
+      phone,
+      email
+    } = req.body;
+    
+    // Validate required fields
+    if (!name || !county || !type) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: name, county, type' 
+      });
+    }
+    
+    const newAggregator = {
+      id: database.aggregators.length + 1,
+      name,
+      county,
+      type,
+      historical_volume: historical_volume || 0,
+      reliability_score: reliability_score || 80,
+      average_quality: average_quality || 85,
+      contact_person: contact_person || null,
+      phone: phone || null,
+      email: email || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    database.aggregators.push(newAggregator);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: 'Aggregator created successfully',
+      data: newAggregator
+    });
+  } catch (error) {
+    console.error('Error creating aggregator:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create aggregator',
+      message: error.message
+    });
+  }
+});
+
+// PUT update aggregator
+app.put('/api/aggregators/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const index = database.aggregators.findIndex(a => a.id === id);
+    
+    if (index === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Aggregator not found' 
+      });
+    }
+    
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No update data provided' 
+      });
+    }
+    
+    database.aggregators[index] = {
+      ...database.aggregators[index],
+      ...req.body,
+      updated_at: new Date().toISOString()
+    };
+    
+    res.json({ 
+      success: true, 
+      message: 'Aggregator updated successfully',
+      data: database.aggregators[index]
+    });
+  } catch (error) {
+    console.error('Error updating aggregator:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to update aggregator',
+      message: error.message
+    });
+  }
+});
+
+// DELETE aggregator
+app.delete('/api/aggregators/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const index = database.aggregators.findIndex(a => a.id === id);
+    
+    if (index === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Aggregator not found' 
+      });
+    }
+    
+    const deletedAggregator = database.aggregators.splice(index, 1)[0];
+    
+    res.json({ 
+      success: true, 
+      message: 'Aggregator deleted successfully',
+      data: deletedAggregator
+    });
+  } catch (error) {
+    console.error('Error deleting aggregator:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to delete aggregator',
+      message: error.message
+    });
+  }
+});
+
+// GET aggregators stats
+app.get('/api/aggregators-stats', (req, res) => {
+  try {
+    const aggregators = database.aggregators;
+    
+    const stats = {
+      total_aggregators: aggregators.length,
+      internal_count: aggregators.filter(a => a.type === 'internal').length,
+      external_count: aggregators.filter(a => a.type === 'external').length,
+      total_volume: aggregators.reduce((sum, agg) => sum + (agg.historical_volume || 0), 0),
+      avg_reliability: aggregators.length > 0 
+        ? aggregators.reduce((sum, agg) => sum + (agg.reliability_score || 0), 0) / aggregators.length
+        : 0,
+      avg_quality: aggregators.length > 0
+        ? aggregators.reduce((sum, agg) => sum + (agg.average_quality || 0), 0) / aggregators.length
+        : 0
+    };
+    
+    res.json({ 
+      success: true, 
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching aggregator stats:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch aggregator stats',
+      message: error.message
+    });
+  }
+});
+
+// ====================== FARMERS API ======================
+
 // Farmers CRUD
 app.get('/api/farmers', (req, res) => {
   res.json(database.farmers);
@@ -149,6 +339,7 @@ app.delete('/api/farmers/:id', (req, res) => {
   }
 });
 
+// ====================== CROPS API ======================
 
 // Crops CRUD
 app.get('/api/crops', (req, res) => {
@@ -165,6 +356,8 @@ app.post('/api/crops', (req, res) => {
   database.crops.push(crop);
   res.status(201).json(crop);
 });
+
+// ====================== ORDERS API ======================
 
 // Orders CRUD
 app.get('/api/procurement/orders', (req, res) => {
@@ -219,25 +412,7 @@ app.delete('/api/procurement/orders/:id', (req, res) => {
   }
 });
 
-app.get('/api/aggregators-stats', (req, res) => {
-  const aggregators = database.aggregators || [];
-  
-  const internal_count = aggregators.filter(a => a.type === 'internal').length;
-  const external_count = aggregators.filter(a => a.type === 'external').length;
-  const total_volume = aggregators.reduce((sum, agg) => sum + (agg.historical_volume || 0), 0);
-  const avg_reliability = aggregators.length > 0 
-    ? aggregators.reduce((sum, agg) => sum + (agg.reliability_score || 0), 0) / aggregators.length
-    : 0;
-
-    res.json({
-    internal_count,
-    external_count,
-    total_volume,
-    avg_reliability: Math.round(avg_reliability)
-  });
-});
-
-// In backend/server.js, add these contract endpoints:
+// ====================== CONTRACTS API ======================
 
 // Get all contracts
 app.get('/api/contracts', (req, res) => {
@@ -319,7 +494,6 @@ app.get('/api/contracts-stats', (req, res) => {
   });
 });
 
-
 // ====================== WEBSOCKET FOR REAL-TIME UPDATES ======================
 const wss = new WebSocketServer({ port: WS_PORT });
 
@@ -351,10 +525,14 @@ server.listen(PORT, () => {
   console.log('\nAvailable endpoints:');
   console.log('  GET  /api/health');
   console.log('  POST /api/auth/login');
+  console.log('  GET  /api/aggregators');
+  console.log('  POST /api/aggregators');
+  console.log('  GET  /api/aggregators-stats');
   console.log('  GET  /api/analytics/overview');
   console.log('  POST /api/farmers');
   console.log('  POST /api/crops');
   console.log('  POST /api/procurement/orders');
+  console.log('  POST /api/contracts');
   console.log('\n🌱 System is fresh - clients can start adding data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
