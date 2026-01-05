@@ -467,6 +467,24 @@ app.get('/api/notifications', (req, res) => {
   res.json([]); // Empty notifications for fresh system
 });
 
+// Add missing procurement endpoints to server.js:
+app.get('/api/procurement/demand-forecast', (req, res) => {
+  res.json([]); // Empty for fresh system
+});
+
+app.get('/api/procurement/supply-reconciliation', (req, res) => {
+  res.json({
+    totalSupply: 0,
+    totalDemand: 0,
+    reconciliationRate: 0,
+    discrepancies: []
+  });
+});
+
+app.get('/api/procurement/harvest-readiness', (req, res) => {
+  res.json([]); // Empty for fresh system
+});
+
 // ====================== WEBSOCKET FOR REAL-TIME UPDATES ======================
 const wss = new WebSocketServer({ port: WS_PORT });
 
@@ -505,4 +523,5 @@ server.listen(PORT, () => {
   console.log('\n🌱 System is fresh - clients can start adding data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
 
