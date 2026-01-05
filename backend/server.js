@@ -398,6 +398,75 @@ app.get('/api/contracts-stats', (req, res) => {
 });
 
 
+// Aggregators CRUD endpoints
+app.get('/api/aggregators', (req, res) => {
+  res.json(database.aggregators);
+});
+
+app.get('/api/aggregators/:id', (req, res) => {
+  const aggregator = database.aggregators.find(a => a.id === parseInt(req.params.id));
+  if (aggregator) {
+    res.json(aggregator);
+  } else {
+    res.status(404).json({ error: 'Aggregator not found' });
+  }
+});
+
+app.post('/api/aggregators', (req, res) => {
+  const aggregator = {
+    id: database.aggregators.length + 1,
+    ...req.body,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  database.aggregators.push(aggregator);
+  res.status(201).json(aggregator);
+});
+
+app.put('/api/aggregators/:id', (req, res) => {
+  const index = database.aggregators.findIndex(a => a.id === parseInt(req.params.id));
+  if (index !== -1) {
+    database.aggregators[index] = {
+      ...database.aggregators[index],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    res.json(database.aggregators[index]);
+  } else {
+    res.status(404).json({ error: 'Aggregator not found' });
+  }
+});
+
+app.delete('/api/aggregators/:id', (req, res) => {
+  const index = database.aggregators.findIndex(a => a.id === parseInt(req.params.id));
+  if (index !== -1) {
+    database.aggregators.splice(index, 1);
+    res.json({ message: 'Aggregator deleted successfully' });
+  } else {
+    res.status(404).json({ error: 'Aggregator not found' });
+  }
+});
+
+// Add other missing analytics endpoints
+app.get('/api/analytics/cost-analysis', (req, res) => {
+  res.json({
+    totalCost: 0,
+    costPerUnit: 0,
+    costBreakdown: {
+      labor: 0,
+      materials: 0,
+      logistics: 0,
+      other: 0
+    },
+    isFreshSystem: database.farmers.length === 0
+  });
+});
+
+// Add notifications endpoint
+app.get('/api/notifications', (req, res) => {
+  res.json([]); // Empty notifications for fresh system
+});
+
 // ====================== WEBSOCKET FOR REAL-TIME UPDATES ======================
 const wss = new WebSocketServer({ port: WS_PORT });
 
@@ -436,3 +505,4 @@ server.listen(PORT, () => {
   console.log('\n🌱 System is fresh - clients can start adding data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
