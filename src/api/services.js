@@ -83,14 +83,18 @@ const cropsApi = {
 };
 
 // ====================== SUPPLY PLANNING API ======================
+
 const supplyApi = {
   // Allocations - CRITICAL for procurement page
-  getAllocations: (params = {}) => api.get('/supply/allocations', { params }),
-  updateAllocation: (id, allocationData) => api.put(`/supply/allocations/${id}`, allocationData),
+  getAllocations: (params = {}) => api.get('/api/supply/allocations', { params }),
+  getAllocationById: (id) => api.get(`/api/supply/allocations/${id}`),
+  createAllocation: (allocationData) => api.post('/api/supply/allocations', allocationData),
+  updateAllocation: (id, allocationData) => api.put(`/api/supply/allocations/${id}`, allocationData),
+  deleteAllocation: (id) => api.delete(`/api/supply/allocations/${id}`),
   
   // Supply Planning
-  getSupplyPlan: (params = {}) => api.get('/supply/plan', { params }),
-  createSupplyPlan: (planData) => api.post('/supply/plan', planData),
+  getSupplyPlan: (params = {}) => api.get('/api/supply/plan', { params }),
+  createSupplyPlan: (planData) => api.post('/api/supply/plan', planData),
 };
 
 // ====================== PROCUREMENT API ======================
@@ -120,23 +124,26 @@ const notificationsApi = {
 
 // ====================== AGGREGATORS API ======================
 const aggregatorsApi = {
-  getAll: (params = {}) => api.get('/aggregators', { params }),
-  getById: (id) => api.get(`/aggregators/${id}`),
-  create: (aggregatorData) => api.post('/aggregators', aggregatorData),
-  update: (id, aggregatorData) => api.put(`/aggregators/${id}`, aggregatorData),
-  delete: (id) => api.delete(`/aggregators/${id}`),
+  getAll: (params = {}) => api.get(API_CONFIG.ENDPOINTS.AGGREGATORS, { params }),
+  getById: (id) => api.get(API_CONFIG.ENDPOINTS.AGGREGATOR_DETAIL(id)),
+  create: (aggregatorData) => api.post(API_CONFIG.ENDPOINTS.AGGREGATORS, aggregatorData),
+  update: (id, aggregatorData) => api.put(API_CONFIG.ENDPOINTS.AGGREGATOR_DETAIL(id), aggregatorData),
+  delete: (id) => api.delete(API_CONFIG.ENDPOINTS.AGGREGATOR_DETAIL(id)),
+  getStats: () => api.get(API_CONFIG.ENDPOINTS.AGGREGATORS_STATS),
 };
 
 // ====================== CONTRACTS API ======================
 const contractsApi = {
-  getAll: (params = {}) => api.get('/contracts', { params }),
-  getById: (id) => api.get(`/contracts/${id}`),
-  create: (contractData) => api.post('/contracts', contractData),
-  update: (id, contractData) => api.put(`/contracts/${id}`, contractData),
+  getAll: (params = {}) => api.get(API_CONFIG.ENDPOINTS.CONTRACTS, { params }),
+  getById: (id) => api.get(API_CONFIG.ENDPOINTS.CONTRACT_DETAIL(id)),
+  create: (contractData) => api.post(API_CONFIG.ENDPOINTS.CONTRACTS, contractData),
+  update: (id, contractData) => api.put(API_CONFIG.ENDPOINTS.CONTRACT_DETAIL(id), contractData),
   updateFulfillment: (id, fulfillment_percentage) => 
-    api.patch(`/contracts/${id}/fulfillment`, { fulfillment_percentage }),
-  delete: (id) => api.delete(`/contracts/${id}`),
+    api.patch(API_CONFIG.ENDPOINTS.CONTRACT_FULFILLMENT(id), { fulfillment_percentage }),
+  delete: (id) => api.delete(API_CONFIG.ENDPOINTS.CONTRACT_DETAIL(id)),
+  getStats: () => api.get(API_CONFIG.ENDPOINTS.CONTRACTS_STATS),
 };
+
 
 // ====================== HEALTH API ======================
 const healthApi = {
@@ -286,3 +293,4 @@ export const buildQueryString = (params) => {
 
 // Export axios instance for custom requests
 export { api };
+
