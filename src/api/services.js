@@ -67,10 +67,10 @@ const analyticsApi = {
 // ====================== FARMERS API ======================
 const farmersApi = {
   getAll: (params = {}) => api.get(API_CONFIG.ENDPOINTS.FARMERS, { params }),
-  getById: (id) => api.get(`${API_CONFIG.ENDPOINTS.FARMERS}/${id}`),
+  getById: (id) => api.get(API_CONFIG.ENDPOINTS.FARMER_DETAIL(id)),
   create: (farmerData) => api.post(API_CONFIG.ENDPOINTS.FARMERS, farmerData),
-  update: (id, farmerData) => api.put(`${API_CONFIG.ENDPOINTS.FARMERS}/${id}`, farmerData),
-  delete: (id) => api.delete(`${API_CONFIG.ENDPOINTS.FARMERS}/${id}`),
+  update: (id, farmerData) => api.put(API_CONFIG.ENDPOINTS.FARMER_DETAIL(id), farmerData),
+  delete: (id) => api.delete(API_CONFIG.ENDPOINTS.FARMER_DETAIL(id)),
 };
 
 // ====================== CROPS API ======================
@@ -80,6 +80,17 @@ const cropsApi = {
   create: (cropData) => api.post(API_CONFIG.ENDPOINTS.CROPS, cropData),
   update: (id, cropData) => api.put(`${API_CONFIG.ENDPOINTS.CROPS}/${id}`, cropData),
   delete: (id) => api.delete(`${API_CONFIG.ENDPOINTS.CROPS}/${id}`),
+};
+
+// ====================== SUPPLY PLANNING API ======================
+const supplyApi = {
+  // Allocations - CRITICAL for procurement page
+  getAllocations: (params = {}) => api.get('/supply/allocations', { params }),
+  updateAllocation: (id, allocationData) => api.put(`/supply/allocations/${id}`, allocationData),
+  
+  // Supply Planning
+  getSupplyPlan: (params = {}) => api.get('/supply/plan', { params }),
+  createSupplyPlan: (planData) => api.post('/supply/plan', planData),
 };
 
 // ====================== PROCUREMENT API ======================
@@ -101,7 +112,7 @@ const procurementApi = {
 // ====================== NOTIFICATIONS API ======================
 const notificationsApi = {
   getAll: (params = {}) => api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS, { params }),
-  getUnreadCount: () => api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS).then(res => res.unreadCount),
+  getUnreadCount: () => api.get(`${API_CONFIG.ENDPOINTS.NOTIFICATIONS}/unread/count`),
   markAsRead: (id) => api.patch(`${API_CONFIG.ENDPOINTS.NOTIFICATIONS}/${id}/read`),
   markAllAsRead: () => api.patch(`${API_CONFIG.ENDPOINTS.NOTIFICATIONS}/read-all`),
   delete: (id) => api.delete(`${API_CONFIG.ENDPOINTS.NOTIFICATIONS}/${id}`),
@@ -114,7 +125,6 @@ const aggregatorsApi = {
   create: (aggregatorData) => api.post('/aggregators', aggregatorData),
   update: (id, aggregatorData) => api.put(`/aggregators/${id}`, aggregatorData),
   delete: (id) => api.delete(`/aggregators/${id}`),
-  getStats: () => api.get('/aggregators-stats'),
 };
 
 // ====================== CONTRACTS API ======================
@@ -126,7 +136,6 @@ const contractsApi = {
   updateFulfillment: (id, fulfillment_percentage) => 
     api.patch(`/contracts/${id}/fulfillment`, { fulfillment_percentage }),
   delete: (id) => api.delete(`/contracts/${id}`),
-  getStats: () => api.get('/contracts-stats'),
 };
 
 // ====================== HEALTH API ======================
@@ -140,6 +149,7 @@ export const apiService = {
   analytics: analyticsApi,
   farmers: farmersApi,
   crops: cropsApi,
+  supply: supplyApi, // This is the missing module!
   procurement: procurementApi,
   notifications: notificationsApi,
   aggregators: aggregatorsApi,
@@ -272,17 +282,6 @@ export const buildQueryString = (params) => {
   });
   
   return searchParams.toString();
-};
-
-// Helper for handling API responses with pagination
-export const handlePagedResponse = (response) => {
-  return {
-    data: response.data || response,
-    total: response.total || 0,
-    page: response.page || 1,
-    limit: response.limit || 20,
-    totalPages: Math.ceil((response.total || 0) / (response.limit || 20))
-  };
 };
 
 // Export axios instance for custom requests
