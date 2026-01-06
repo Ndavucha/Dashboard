@@ -13,8 +13,15 @@ app.use(cors({
   origin: '*',  // Allow ALL origins (temporary)
   credentials: true
 }));
-app.use(express.json());  // ADD THIS LINE - Parse JSON bodies
-app.use(express.urlencoded({ extended: true }));  // ADD THIS LINE - Parse URL-encoded bodies
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ====================== DEBUG MIDDLEWARE ======================
+// Add this to see all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
 // ====================== EMPTY DATABASE ======================
 const database = {
@@ -23,9 +30,9 @@ const database = {
   crops: [],
   orders: [],
   contracts: [],
-  supplyAllocations: [],  // Already initialized
-  supplyPlan: [],         // Add supply plan
-  notifications: []       // Add notifications
+  supplyAllocations: [],
+  supplyPlan: [],
+  notifications: []
 };
 
 // ====================== HEALTH & AUTH ======================
@@ -58,6 +65,7 @@ app.post('/api/auth/login', (req, res) => {
 // ====================== AGGREGATORS ENDPOINTS ======================
 
 app.get('/api/aggregators', (req, res) => {
+  console.log('📊 Returning aggregators:', database.aggregators.length);
   res.json(database.aggregators);
 });
 
@@ -126,6 +134,7 @@ app.get('/api/aggregators-stats', (req, res) => {
 
 // Get all supply allocations
 app.get('/api/supply/allocations', (req, res) => {
+  console.log('📊 Returning allocations:', database.supplyAllocations.length);
   res.json(database.supplyAllocations);
 });
 
@@ -516,6 +525,7 @@ app.get('/api/analytics/cost-analysis', (req, res) => {
 // ====================== FARMERS ENDPOINTS ======================
 
 app.get('/api/farmers', (req, res) => {
+  console.log('📊 Returning farmers:', database.farmers.length);
   res.json(database.farmers);
 });
 
@@ -608,6 +618,7 @@ app.delete('/api/crops/:id', (req, res) => {
 
 // Orders
 app.get('/api/procurement/orders', (req, res) => {
+  console.log('📊 Returning orders:', database.orders.length);
   res.json(database.orders);
 });
 
@@ -790,10 +801,10 @@ const server = createServer(app);
 
 server.listen(PORT, () => {
   console.log('='.repeat(60));
-  console.log(`🎉 FRESH SUPPLY CHAIN SYSTEM STARTED`);
+  console.log(`🎉 SUPPLY CHAIN SYSTEM STARTED`);
   console.log(`✅ HTTP Server: http://localhost:${PORT}`);
   console.log(`✅ WebSocket Server: ws://localhost:${WS_PORT}`);
-  console.log(`📊 Data Status: EMPTY - Ready for client data`);
+  console.log(`📊 Data Status: Ready for client data`);
   console.log('='.repeat(60));
   console.log('\n📋 ALL AVAILABLE ENDPOINTS:');
   console.log('  HEALTH & AUTH:');
@@ -858,6 +869,6 @@ server.listen(PORT, () => {
   console.log('    PATCH /api/notifications/:id/read');
   console.log('    PATCH /api/notifications/read-all');
   console.log('    DELETE /api/notifications/:id');
-  console.log('\n🌱 System is fresh - clients can start adding data!');
+  console.log('\n🌱 System is running - ready for data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
