@@ -35,6 +35,25 @@ const database = {
   notifications: []
 };
 
+// ====================== ROOT ROUTE ======================
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Supply Chain Management System API',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      aggregators: '/api/aggregators',
+      contracts: '/api/contracts',
+      farmers: '/api/farmers',
+      analytics: '/api/analytics/overview',
+      supply: '/api/supply/allocations',
+      procurement: '/api/procurement/orders',
+      health: '/api/health'
+    }
+  });
+});
+
 // ====================== HEALTH & AUTH ======================
 
 app.get('/api/health', (req, res) => {
@@ -919,10 +938,13 @@ app.use((err, req, res, next) => {
 // ====================== START SERVER ======================
 const server = createServer(app);
 
-server.listen(PORT, () => {
+// Get port from environment variable (Render provides this)
+const port = process.env.PORT || 5000;
+
+server.listen(port, '0.0.0.0', () => {
   console.log('='.repeat(60));
   console.log(`🎉 SUPPLY CHAIN SYSTEM STARTED`);
-  console.log(`✅ HTTP Server: http://localhost:${PORT}`);
+  console.log(`✅ HTTP Server: http://0.0.0.0:${port}`);
   console.log(`📊 Data Status: Empty - Ready for data`);
   console.log('='.repeat(60));
   console.log('\n📋 KEY ENDPOINTS:');
