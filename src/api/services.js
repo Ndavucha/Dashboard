@@ -230,6 +230,22 @@ const procurementApi = {
   getHarvestReadiness: (days = 7) => 
     api.get(API_CONFIG.ENDPOINTS.HARVEST_READINESS, { params: { days } }),
 };
+// ====================== FARM MALL API ======================
+const farmMallApi = {
+  getFarmers: async (params = {}) => {
+    try {
+      const response = await api.get(API_CONFIG.ENDPOINTS.FARM_MALL_FARMERS, { params });
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.warn('Could not fetch farmmall farmers, returning empty array');
+      return [];
+    }
+  },
+  
+  getFarmerById: (id) => api.get(API_CONFIG.ENDPOINTS.FARM_MALL_FARMER_DETAIL(id)),
+  
+  createOrder: (orderData) => api.post(API_CONFIG.ENDPOINTS.FARM_MALL_ORDER, orderData),
+};
 
 // ====================== NOTIFICATIONS API ======================
 const notificationsApi = {
@@ -421,3 +437,4 @@ export const buildQueryString = (params) => {
 
 // Export axios instance for custom requests
 export { api };
+
