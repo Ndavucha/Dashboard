@@ -49,6 +49,7 @@ app.get('/', (req, res) => {
       analytics: '/api/analytics/overview',
       supply: '/api/supply/allocations',
       procurement: '/api/procurement/orders',
+      farmmall: '/api/farmmall/farmers',  
       health: '/api/health'
     }
   });
@@ -1093,9 +1094,14 @@ server.listen(port, '0.0.0.0', () => {
   console.log('    POST /api/procurement/orders');
   console.log('    GET  /api/procurement/demand-forecast');
   console.log('    POST /api/procurement/request-supplement');
+  console.log('  FarmMall:');
+  console.log('    GET  /api/farmmall/farmers');
+  console.log('    GET  /api/farmmall/farmers/:id');
+  console.log('    POST /api/farmmall/orders');
   console.log('  Utility:');
   console.log('    POST /api/reset');
   console.log('\n🌱 System is running - ready for data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
 
