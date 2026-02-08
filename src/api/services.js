@@ -302,6 +302,7 @@ export const apiService = {
   crops: cropsApi,
   supply: supplyApi,
   procurement: procurementApi,
+  farmMall: farmMallApi,
   notifications: notificationsApi,
   aggregators: aggregatorsApi,
   contracts: contractsApi,
@@ -437,4 +438,5 @@ export const buildQueryString = (params) => {
 
 // Export axios instance for custom requests
 export { api };
+
 
