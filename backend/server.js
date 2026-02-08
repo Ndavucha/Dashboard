@@ -812,6 +812,126 @@ app.get('/api/procurement/supplement-requests', (req, res) => {
   }
 });
 
+// ====================== FARM MALL ENDPOINTS ======================
+
+// Get all farmmall farmers
+app.get('/api/farmmall/farmers', (req, res) => {
+  try {
+    // Dummy potato farmers data
+    const farmMallFarmers = [
+      {
+        id: 1,
+        name: 'Green Valley Potato Farmers',
+        county: 'Nakuru',
+        varieties: ['Annet', 'Arizona', 'Asante'],
+        phone: '+254 712 345 678',
+        rating: 4.8,
+        verified: true,
+        price: 'KES 45,000 - 52,000 / ton'
+      },
+      {
+        id: 2,
+        name: 'Meru Highlands Potato Co-op',
+        county: 'Meru',
+        varieties: ['Arnova', 'Unica', 'Tigoni'],
+        phone: '+254 723 456 789',
+        rating: 4.5,
+        verified: true,
+        price: 'KES 48,000 - 55,000 / ton'
+      },
+      {
+        id: 3,
+        name: 'Eldoret Potato Traders',
+        county: 'Uasin Gishu',
+        varieties: ['Annet', 'Challenger', 'Manitou'],
+        phone: '+254 734 567 890',
+        rating: 4.7,
+        verified: true,
+        price: 'KES 42,000 - 48,000 / ton'
+      },
+      {
+        id: 4,
+        name: 'Kiambu Potato Growers',
+        county: 'Kiambu',
+        varieties: ['Tigoni', 'Nyota', 'Sherekea'],
+        phone: '+254 745 678 901',
+        rating: 4.3,
+        verified: false,
+        price: 'KES 50,000 - 58,000 / ton'
+      },
+      {
+        id: 5,
+        name: 'Naivasha Potato Farm',
+        county: 'Naivasha',
+        varieties: ['Unica', 'Asante', 'Jelly'],
+        phone: '+254 756 789 012',
+        rating: 4.9,
+        verified: true,
+        price: 'KES 55,000 - 65,000 / ton'
+      },
+      {
+        id: 6,
+        name: 'Nyandarua Potato Alliance',
+        county: 'Nyandarua',
+        varieties: ['Voyager', 'Challenger', 'Arizona'],
+        phone: '+254 767 890 123',
+        rating: 4.6,
+        verified: true,
+        price: 'KES 40,000 - 46,000 / ton'
+      }
+    ];
+
+    console.log('🥔 GET /api/farmmall/farmers - Returning:', farmMallFarmers.length);
+    res.json(farmMallFarmers);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to fetch farmmall farmers' });
+  }
+});
+
+// Get farmmall farmer by ID
+app.get('/api/farmmall/farmers/:id', (req, res) => {
+  try {
+    const farmMallFarmers = [
+      // same dummy data as above
+    ];
+    
+    const farmer = farmMallFarmers.find(f => f.id === parseInt(req.params.id));
+    if (farmer) {
+      res.json(farmer);
+    } else {
+      res.status(404).json({ error: 'FarmMall farmer not found' });
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to fetch farmmall farmer' });
+  }
+});
+
+// Create farmmall order
+app.post('/api/farmmall/orders', (req, res) => {
+  try {
+    const orderData = req.body;
+    const newOrder = {
+      id: Date.now(),
+      ...orderData,
+      source: 'farmmall',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Add to orders database
+    database.orders.push(newOrder);
+    
+    console.log('🥔 POST /api/farmmall/orders - Created:', newOrder.id);
+    res.status(201).json(newOrder);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to create farmmall order' });
+  }
+});
+
 // ====================== ANALYTICS ENDPOINTS ======================
 
 app.get('/api/analytics/overview', (req, res) => {
@@ -978,3 +1098,4 @@ server.listen(port, '0.0.0.0', () => {
   console.log('\n🌱 System is running - ready for data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
