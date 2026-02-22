@@ -664,43 +664,18 @@ app.post('/api/crops', (req, res) => {
 // Get all demand forecasts
 app.get('/api/procurement/demand-forecast', (req, res) => {
   try {
-    // This is your existing endpoint - it returns mock data
-    // You need to modify it to return actual saved demands
     const days = parseInt(req.query.days) || 30;
     
-    // Check if we have saved demands in database
+    // Only return saved demands, never mock data
     if (database.demands && database.demands.length > 0) {
       console.log('📊 GET /api/procurement/demand-forecast - Returning saved demands:', database.demands.length);
       return res.json(database.demands);
     }
     
-    // Fallback to mock data if no saved demands
-    const forecast = [];
-    const today = new Date();
+    // Return empty array if no demands exist
+    console.log('📊 GET /api/procurement/demand-forecast - No demands found, returning empty array');
+    return res.json([]);
     
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const dateKey = date.toISOString().split('T')[0];
-      
-      const baseDemand = 50;
-      const randomVariation = Math.random() * 20 - 10;
-      const quantity = Math.max(20, baseDemand + randomVariation);
-      
-      forecast.push({
-        id: `mock-${i}`,
-        date: dateKey,
-        quantity: parseFloat(quantity.toFixed(1)),
-        cropType: 'Potatoes',
-        variety: '',
-        specifications: '',
-        confidence: Math.random() * 20 + 80,
-        updatedAt: new Date().toISOString()
-      });
-    }
-    
-    console.log('📊 GET /api/procurement/demand-forecast - Returning mock data:', days, 'days');
-    res.json(forecast);
   } catch (error) {
     console.error('❌ Error:', error);
     res.status(500).json({ error: 'Failed to fetch forecast' });
@@ -812,6 +787,64 @@ app.get('/api/procurement/demand/:id', (req, res) => {
   }
 });
 
+// Get demands by date range
+app.get('/api/procurement/demand/range', (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate are required' });
+    }
+    
+    if (!database.demands) {
+      return res.json([]);
+    }
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    const filteredDemands = database.demands.filter(d => {
+      const demandDate = new Date(d.date);
+      return demandDate >= start && demandDate <= end;
+    });
+    
+    console.log('📊 GET /api/procurement/demand/range - Returning:', filteredDemands.length, 'demands');
+    res.json(filteredDemands);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to fetch demands by date range' });
+  }
+});
+
+// Bulk create demands
+app.post('/api/procurement/demand/bulk', (req, res) => {
+  try {
+    const { demands } = req.body;
+    
+    if (!demands || !Array.isArray(demands)) {
+      return res.status(400).json({ error: 'demands array is required' });
+    }
+    
+    // Initialize demands array if it doesn't exist
+    if (!database.demands) {
+      database.demands = [];
+    }
+    
+    const newDemands = demands.map(demand => ({
+      id: Date.now() + Math.floor(Math.random() * 1000), // Ensure unique IDs
+      ...demand,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }));
+    
+    database.demands.push(...newDemands);
+    console.log('📦 POST /api/procurement/demand/bulk - Created:', newDemands.length, 'demands');
+    res.status(201).json(newDemands);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to bulk create demands' });
+  }
+});
 // ====================== PROCUREMENT ENDPOINTS ======================
 
 app.get('/api/procurement/orders', (req, res) => {
@@ -1257,6 +1290,7 @@ server.listen(port, '0.0.0.0', () => {
   console.log('\n🌱 System is running - ready for data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
 
 
 
