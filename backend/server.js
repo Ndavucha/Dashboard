@@ -32,7 +32,8 @@ const database = {
   supplyAllocations: [],
   supplyPlan: [],
   supplementRequests: [],
-  notifications: []
+  notifications: [],
+  demands: []
 };
 
 // ====================== ROOT ROUTE ======================
@@ -658,6 +659,159 @@ app.post('/api/crops', (req, res) => {
   }
 });
 
+// ====================== DEMAND MANAGEMENT ENDPOINTS ======================
+
+// Get all demand forecasts
+app.get('/api/procurement/demand-forecast', (req, res) => {
+  try {
+    // This is your existing endpoint - it returns mock data
+    // You need to modify it to return actual saved demands
+    const days = parseInt(req.query.days) || 30;
+    
+    // Check if we have saved demands in database
+    if (database.demands && database.demands.length > 0) {
+      console.log('📊 GET /api/procurement/demand-forecast - Returning saved demands:', database.demands.length);
+      return res.json(database.demands);
+    }
+    
+    // Fallback to mock data if no saved demands
+    const forecast = [];
+    const today = new Date();
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      const dateKey = date.toISOString().split('T')[0];
+      
+      const baseDemand = 50;
+      const randomVariation = Math.random() * 20 - 10;
+      const quantity = Math.max(20, baseDemand + randomVariation);
+      
+      forecast.push({
+        id: `mock-${i}`,
+        date: dateKey,
+        quantity: parseFloat(quantity.toFixed(1)),
+        cropType: 'Potatoes',
+        variety: '',
+        specifications: '',
+        confidence: Math.random() * 20 + 80,
+        updatedAt: new Date().toISOString()
+      });
+    }
+    
+    console.log('📊 GET /api/procurement/demand-forecast - Returning mock data:', days, 'days');
+    res.json(forecast);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to fetch forecast' });
+  }
+});
+
+// Create new demand
+app.post('/api/procurement/demand', (req, res) => {
+  try {
+    const demandData = req.body;
+    
+    // Initialize demands array if it doesn't exist
+    if (!database.demands) {
+      database.demands = [];
+    }
+    
+    const newDemand = {
+      id: Date.now(), // Use timestamp as unique ID
+      ...demandData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    database.demands.push(newDemand);
+    console.log('✅ POST /api/procurement/demand - Created for date:', newDemand.date);
+    res.status(201).json(newDemand);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to create demand' });
+  }
+});
+
+// Update demand
+app.put('/api/procurement/demand/:id', (req, res) => {
+  try {
+    const demandId = parseInt(req.params.id);
+    const updates = req.body;
+    
+    if (!database.demands) {
+      return res.status(404).json({ error: 'Demand not found' });
+    }
+    
+    const index = database.demands.findIndex(d => d.id === demandId);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Demand not found' });
+    }
+    
+    database.demands[index] = {
+      ...database.demands[index],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('✏️ PUT /api/procurement/demand/:id - Updated for date:', database.demands[index].date);
+    res.json(database.demands[index]);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to update demand' });
+  }
+});
+
+// Delete demand
+app.delete('/api/procurement/demand/:id', (req, res) => {
+  try {
+    const demandId = parseInt(req.params.id);
+    
+    if (!database.demands) {
+      return res.status(404).json({ error: 'Demand not found' });
+    }
+    
+    const index = database.demands.findIndex(d => d.id === demandId);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Demand not found' });
+    }
+    
+    const deletedDemand = database.demands.splice(index, 1)[0];
+    console.log('🗑️ DELETE /api/procurement/demand/:id - Deleted for date:', deletedDemand.date);
+    res.json({ 
+      message: 'Demand deleted successfully',
+      demand: deletedDemand
+    });
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to delete demand' });
+  }
+});
+
+// Get single demand by ID
+app.get('/api/procurement/demand/:id', (req, res) => {
+  try {
+    const demandId = parseInt(req.params.id);
+    
+    if (!database.demands) {
+      return res.status(404).json({ error: 'Demand not found' });
+    }
+    
+    const demand = database.demands.find(d => d.id === demandId);
+    
+    if (!demand) {
+      return res.status(404).json({ error: 'Demand not found' });
+    }
+    
+    res.json(demand);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ error: 'Failed to fetch demand' });
+  }
+});
+
 // ====================== PROCUREMENT ENDPOINTS ======================
 
 app.get('/api/procurement/orders', (req, res) => {
@@ -1103,5 +1257,6 @@ server.listen(port, '0.0.0.0', () => {
   console.log('\n🌱 System is running - ready for data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
 
 
