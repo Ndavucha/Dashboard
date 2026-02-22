@@ -224,9 +224,101 @@ const procurementApi = {
   
   deleteOrder: (id) => api.delete(`${API_CONFIG.ENDPOINTS.PROCUREMENT_ORDERS}/${id}`),
   
-  // Other procurement endpoints
-  getDemandForecast: () => api.get(API_CONFIG.ENDPOINTS.DEMAND_FORECAST),
+  // Demand Forecast - Get all demands
+  getDemandForecast: async (days = 30) => {
+    try {
+      console.log('📊 Fetching demand forecast...');
+      const response = await api.get(API_CONFIG.ENDPOINTS.DEMAND_FORECAST, { params: { days } });
+      console.log('📊 Demand forecast response:', response);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.warn('⚠️ Could not fetch demand forecast, returning empty array:', error.message);
+      return [];
+    }
+  },
+  
+  // Create new demand
+  createDemand: async (demandData) => {
+    try {
+      console.log('📝 Creating demand:', demandData);
+      const response = await api.post('/api/procurement/demand', demandData);
+      console.log('📝 Demand created:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error creating demand:', error);
+      throw error;
+    }
+  },
+  
+  // Update existing demand
+  updateDemand: async (id, demandData) => {
+    try {
+      console.log('✏️ Updating demand:', id);
+      const response = await api.put(`/api/procurement/demand/${id}`, demandData);
+      console.log('✏️ Demand updated:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error updating demand:', error);
+      throw error;
+    }
+  },
+  
+  // Delete demand
+  deleteDemand: async (id) => {
+    try {
+      console.log('🗑️ Deleting demand:', id);
+      const response = await api.delete(`/api/procurement/demand/${id}`);
+      console.log('🗑️ Demand deleted:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error deleting demand:', error);
+      throw error;
+    }
+  },
+  
+  // Get single demand by ID
+  getDemandById: async (id) => {
+    try {
+      console.log('🔍 Fetching demand:', id);
+      const response = await api.get(`/api/procurement/demand/${id}`);
+      return response;
+    } catch (error) {
+      console.error('❌ Error fetching demand:', error);
+      throw error;
+    }
+  },
+  
+  // Get demands by date range
+  getDemandsByDateRange: async (startDate, endDate) => {
+    try {
+      console.log('📊 Fetching demands from', startDate, 'to', endDate);
+      const response = await api.get('/api/procurement/demand/range', { 
+        params: { startDate, endDate } 
+      });
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.warn('⚠️ Could not fetch demands by date range:', error.message);
+      return [];
+    }
+  },
+  
+  // Bulk create demands
+  bulkCreateDemands: async (demandsData) => {
+    try {
+      console.log('📦 Bulk creating demands:', demandsData.length);
+      const response = await api.post('/api/procurement/demand/bulk', { demands: demandsData });
+      console.log('📦 Bulk demands created:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error bulk creating demands:', error);
+      throw error;
+    }
+  },
+  
+  // Get supply reconciliation
   getSupplyReconciliation: () => api.get(API_CONFIG.ENDPOINTS.SUPPLY_RECONCILIATION),
+  
+  // Get harvest readiness
   getHarvestReadiness: (days = 7) => 
     api.get(API_CONFIG.ENDPOINTS.HARVEST_READINESS, { params: { days } }),
 };
@@ -438,5 +530,6 @@ export const buildQueryString = (params) => {
 
 // Export axios instance for custom requests
 export { api };
+
 
 
