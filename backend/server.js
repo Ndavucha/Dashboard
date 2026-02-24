@@ -936,37 +936,6 @@ app.delete('/api/procurement/orders/:id', (req, res) => {
   }
 });
 
-// Demand forecast
-app.get('/api/procurement/demand-forecast', (req, res) => {
-  try {
-    const days = parseInt(req.query.days) || 30;
-    const forecast = [];
-    const today = new Date();
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const dateKey = date.toISOString().split('T')[0];
-      
-      const baseDemand = 50;
-      const randomVariation = Math.random() * 20 - 10;
-      const quantity = Math.max(20, baseDemand + randomVariation);
-      
-      forecast.push({
-        date: dateKey,
-        quantity: parseFloat(quantity.toFixed(1)),
-        confidence: Math.random() * 20 + 80,
-        updatedAt: new Date().toISOString()
-      });
-    }
-    
-    console.log('📊 GET /api/procurement/demand-forecast - Returning:', days, 'days');
-    res.json(forecast);
-  } catch (error) {
-    console.error('❌ Error:', error);
-    res.status(500).json({ error: 'Failed to fetch forecast' });
-  }
-});
 
 // Request supplement
 app.post('/api/procurement/request-supplement', (req, res) => {
@@ -1290,6 +1259,7 @@ server.listen(port, '0.0.0.0', () => {
   console.log('\n🌱 System is running - ready for data!');
   console.log('\nPress Ctrl+C to stop\n');
 });
+
 
 
 
